@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales AI Tools Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center justify-center p-6">
+    <div class="max-w-4xl w-full text-center space-y-8">
+        <header class="space-y-4">
+            <h1 class="text-5xl font-bold tracking-tight text-white">Sales AI Tools</h1>
+            <p class="text-xl text-slate-400">Capacity planning and diagnostic utilities for Google Cloud Generative AI.</p>
+        </header>
+
+        <main class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+            <!-- GSU Simulator -->
+            <a href="googlecloud_simulador_de_gsus.html" class="group block p-6 bg-slate-800 rounded-2xl border border-slate-700 hover:border-blue-500 transition-all duration-300 transform hover:-translate-y-1">
+                <div class="text-blue-400 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <h2 class="text-xl font-semibold mb-2 group-hover:text-blue-400">GSU Simulator</h2>
+                <p class="text-sm text-slate-400 text-center">Calculate required Generative AI Scale Units based on traffic.</p>
+            </a>
+
+            <!-- SLA Visualizer -->
+            <a href="simulador_visual_de_sla_pt.html" class="group block p-6 bg-slate-800 rounded-2xl border border-slate-700 hover:border-purple-500 transition-all duration-300 transform hover:-translate-y-1">
+                <div class="text-purple-400 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                    </svg>
+                </div>
+                <h2 class="text-xl font-semibold mb-2 group-hover:text-purple-400">SLA Visualizer</h2>
+                <p class="text-sm text-slate-400 text-center">Visualize Provisioned Throughput SLAs and overflow handling.</p>
+            </a>
+
+            <!-- Cache Tester -->
+            <a href="GeminiImplicitCacheTester.html" class="group block p-6 bg-slate-800 rounded-2xl border border-slate-700 hover:border-emerald-500 transition-all duration-300 transform hover:-translate-y-1">
+                <div class="text-emerald-400 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.628.285a2 2 0 01-1.963 0l-.628-.285a6 6 0 00-3.86-.517l-2.387.477a2 2 0 00-1.022.547V18a2 2 0 002 2h11a2 2 0 002-2v-2.572zM19 10V4a2 2 0 00-2-2H7a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2z" />
+                    </svg>
+                </div>
+                <h2 class="text-xl font-semibold mb-2 group-hover:text-emerald-400">Cache Tester</h2>
+                <p class="text-sm text-slate-400 text-center">Diagnostic tool for testing Gemini's implicit caching behavior.</p>
+            </a>
+        </main>
+
+        <footer class="mt-20 text-slate-500 text-sm">
+            <p>Open source tools for AI infrastructure planning.</p>
+        </footer>
+    </div>
+</body>
+</html>
