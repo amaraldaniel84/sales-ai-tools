@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Provisionamento - Vertex AI GSUs</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom Styles -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        
+        /* Ocultar setas de input number */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen p-4 md:p-8">
+
+    <div class="w-full max-w-[1400px] mx-auto space-y-6">
+        
+        <!-- Header -->
+        <header class="mb-4">
+            <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Simulador de GSUs</h1>
+            <p class="text-slate-500 mt-2 text-sm md:text-base">Ajuste as premissas de distribuição de tráfego e o volume de tokens para calcular a necessidade de Generative AI Scale Units (Provisioned Throughput).</p>
+        </header>
+
+        <!-- Top Dashboard: Premissas + Total Estimado -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <!-- Premissas Globais - Dia -->
+            <div class="glass-card rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-800 mb-1 flex items-center">
+                        <svg class="w-4 h-4 text-blue-600 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        Fator Dia de Pico (Global)
+                    </label>
+                    <div class="relative mb-2">
+                        <input type="number" id="input-day-factor" step="0.01" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors font-medium text-lg" value="5.0">
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <span class="text-slate-500 font-bold">%</span>
+                        </div>
+                    </div>
+                </div>
+                <details class="group cursor-pointer">
+                    <summary class="text-xs text-blue-600 font-medium hover:text-blue-700 flex items-center list-none select-none">
+                        <svg class="w-4 h-4 mr-1 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        Como isso é calculado?
+                    </summary>
+                    <div class="text-xs text-slate-600 mt-2 p-3 bg-blue-50/50 rounded-lg border border-blue-100 leading-relaxed shadow-inner">
+                        <p class="mb-1">Define qual fatia do volume mensal ocorre no dia de maior estresse.</p>
+                        <div class="bg-white p-2 rounded border border-slate-100 mt-1 font-mono text-[10px] text-slate-500">
+                            (Tokens Totais Mês × % Dia) = Volume Dia Pico
+                        </div>
+                    </div>
+                </details>
+            </div>
+
+            <!-- Premissas Globais - Hora -->
+            <div class="glass-card rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-800 mb-1 flex items-center">
+                        <svg class="w-4 h-4 text-blue-600 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Fator Hora de Pico (Global)
+                    </label>
+                    <div class="relative mb-2">
+                        <input type="number" id="input-hour-factor" step="0.1" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors font-medium text-lg" value="10.0">
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <span class="text-slate-500 font-bold">%</span>
+                        </div>
+                    </div>
+                </div>
+                <details class="group cursor-pointer">
+                    <summary class="text-xs text-blue-600 font-medium hover:text-blue-700 flex items-center list-none select-none">
+                        <svg class="w-4 h-4 mr-1 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        Como isso é calculado?
+                    </summary>
+                    <div class="text-xs text-slate-600 mt-2 p-3 bg-blue-50/50 rounded-lg border border-blue-100 leading-relaxed shadow-inner">
+                        <p class="mb-1">Define qual fatia do tráfego diário se concentra na hora mais movimentada.</p>
+                        <div class="bg-white p-2 rounded border border-slate-100 mt-1 font-mono text-[10px] text-slate-500">
+                            (Volume Dia Pico × % Hora) ÷ 3600s = TPS
+                        </div>
+                    </div>
+                </details>
+            </div>
+
+            <!-- Total GSUs -->
+            <div class="glass-card rounded-2xl p-6 shadow-sm bg-gradient-to-br from-blue-600 to-indigo-700 border-none text-white flex flex-col justify-center">
+                <h3 class="text-sm font-medium text-blue-100 uppercase tracking-wider mb-1">Total Necessário</h3>
+                <div class="flex items-end space-x-2">
+                    <span id="total-gsus" class="text-6xl font-bold tracking-tight">0</span>
+                    <span class="text-xl font-medium text-blue-200 mb-1.5">GSUs</span>
+                </div>
+                <p class="text-xs text-blue-200 mt-3 opacity-90 border-t border-blue-500/50 pt-3">
+                    Capacidade consolidada para suportar todos os modelos no cenário de pico projetado.
+                </p>
+            </div>
+        </div>
+
+        <!-- Tabela de Modelos (Full Width) -->
+        <div class="space-y-4">
+            <!-- Alerta Informativo -->
+            <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-amber-700">
+                            Ajuste os valores de <strong>In/Out</strong>, o multiplicador de <strong>Peso Out</strong> e os fatores de pico individuais de cada modelo na tabela abaixo.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-2xl shadow-sm overflow-hidden">
+                <div class="overflow-x-auto w-full">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs text-slate-500 uppercase bg-slate-50/50 border-b border-slate-200">
+                            <tr>
+                                <th scope="col" class="px-4 py-4 font-semibold min-w-[180px]">Modelo</th>
+                                <th scope="col" class="px-4 py-4 font-semibold min-w-[280px]">Tokens / Eventos (Mês)</th>
+                                <th scope="col" class="px-2 py-4 font-semibold text-center whitespace-nowrap" title="Multiplicador de Burden para Output">Peso Out</th>
+                                <th scope="col" class="px-2 py-4 font-semibold text-center whitespace-nowrap" title="Fator Dia de Pico">% DIA PICO</th>
+                                <th scope="col" class="px-2 py-4 font-semibold text-center whitespace-nowrap" title="Fator Hora de Pico">% HORA PICO</th>
+                                <th scope="col" class="px-2 py-4 font-semibold text-center whitespace-nowrap">Capac. GSU</th>
+                                <th scope="col" class="px-4 py-4 font-semibold text-right whitespace-nowrap">TPS Gerado</th>
+                                <th scope="col" class="px-4 py-4 font-semibold text-center whitespace-nowrap">GSUs Req.</th>
+                            </tr>
+                        </thead>
+                        <tbody id="models-tbody" class="divide-y divide-slate-100">
+                            <!-- Linhas serão injetadas via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Estimativa de Custos (3 cards - Semanal removido) -->
+            <div class="glass-card rounded-2xl p-6 shadow-sm mt-6">
+                <h2 class="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+                    <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Estimativa de Custo Mensal (Total)
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- 1-month -->
+                    <div class="p-5 rounded-xl bg-slate-50 border border-slate-200 transition-all hover:shadow-md">
+                        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Compromisso 1 Mês</div>
+                        <div id="cost-month1" class="text-3xl font-bold text-slate-900">$0</div>
+                        <div class="text-sm text-slate-500 mt-2 font-medium">SKU: $2.700 / mês</div>
+                    </div>
+                    <!-- 3-month -->
+                    <div class="p-5 rounded-xl bg-slate-50 border border-slate-200 transition-all hover:shadow-md">
+                        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Compromisso 3 Meses</div>
+                        <div id="cost-month3" class="text-3xl font-bold text-slate-900">$0</div>
+                        <div class="text-sm text-slate-500 mt-2 font-medium">SKU: $2.400 / mês</div>
+                    </div>
+                    <!-- 12-month -->
+                    <div class="p-5 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 shadow-sm relative overflow-hidden transition-all hover:shadow-md">
+                        <div class="absolute top-0 right-0 bg-green-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">MAIOR DESCONTO</div>
+                        <div class="text-xs font-semibold text-green-700 uppercase tracking-wider mb-1">Compromisso 12 Meses</div>
+                        <div id="cost-month12" class="text-3xl font-bold text-green-900">$0</div>
+                        <div class="text-sm text-green-700 mt-2 font-medium">SKU: $2.000 / mês</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const state = {
+            models: [
+                { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', prompt: 8458896198, completion: 895424381, weight: 9, gsuLimit: 2690, dayFactor: 5.0, hourFactor: 10.0 },
+                { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro Preview', prompt: 5823448215, completion: 974474546, weight: 6, gsuLimit: 500, dayFactor: 5.0, hourFactor: 10.0 },
+                { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash Preview', prompt: 707905581, completion: 25038656, weight: 6, gsuLimit: 2015, dayFactor: 5.0, hourFactor: 10.0 },
+                { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', prompt: 165292532, completion: 17062570, weight: 8, gsuLimit: 650, dayFactor: 5.0, hourFactor: 10.0 },
+                { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro Preview', prompt: 9991644, completion: 987769, weight: 6, gsuLimit: 500, dayFactor: 5.0, hourFactor: 10.0 },
+                // Modelo de imagem
+                { id: 'gemini-2.5-flash-image', name: 'Gemini 2.5 Flash (Image)', prompt: 926914, completion: 2834490, isImageGen: true, images: 5496, tokensPerImage: 1500, weight: 100, gsuLimit: 2690, dayFactor: 5.0, hourFactor: 10.0 }
+            ]
+        };
+
+        // Formatação de números
+        const formatNumber = (num) => new Intl.NumberFormat('pt-BR').format(Math.round(num));
+        const formatCurrency = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num);
+
+        function calculate() {
+            let totalGsus = 0;
+            const tbody = document.getElementById('models-tbody');
+            tbody.innerHTML = '';
+
+            state.models.forEach((model, index) => {
+                // Aplicar peso de burden nos tokens de saída ou cálculo de imagens
+                let totalTokensWeighted = 0;
+                if (model.isImageGen) {
+                    const outTokens = model.images * model.tokensPerImage;
+                    totalTokensWeighted = model.prompt + (outTokens * model.weight);
+                } else {
+                    totalTokensWeighted = model.prompt + (model.completion * model.weight);
+                }
+
+                // Matemática de distribuição temporal (Pico)
+                const tokensPeakDay = totalTokensWeighted * (model.dayFactor / 100);
+                const tokensPeakHour = tokensPeakDay * (model.hourFactor / 100);
+                const tps = tokensPeakHour / 3600; // 3600 segundos em uma hora
+                
+                // Tratar divisões por zero ou limites inválidos
+                const requiredGsus = model.gsuLimit > 0 ? Math.ceil(tps / model.gsuLimit) : 0;
+                totalGsus += requiredGsus;
+
+                // Construir a linha da tabela dinamicamente
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/50 transition-colors group";
+                
+                tr.innerHTML = `
+                    <td class="px-4 py-4">
+                        <div class="font-medium text-slate-900 truncate" title="${model.name}">${model.name}</div>
+                        <div class="text-[11px] text-slate-400 mt-0.5 font-mono truncate" title="${model.id}">${model.id}</div>
+                    </td>
+                    <td class="px-4 py-4">
+                        ${model.isImageGen ? `
+                        <div class="flex flex-col space-y-2">
+                            <div class="flex items-center text-xs whitespace-nowrap">
+                                <span class="text-slate-500 mr-2 font-semibold w-8">In:</span>
+                                <input type="number" 
+                                    class="w-24 bg-transparent border-b border-slate-200 border-dashed focus:border-blue-500 focus:outline-none p-1 text-slate-700 text-right"
+                                    value="${model.prompt}"
+                                    onchange="updateModelProp(${index}, 'prompt', this.value)" title="Tokens de Prompt">
+                            </div>
+                            <div class="flex items-center text-xs whitespace-nowrap">
+                                <span class="text-slate-500 mr-2 font-semibold w-8" title="Imagens Geradas">Imgs:</span>
+                                <input type="number" 
+                                    class="w-16 bg-transparent border-b border-slate-200 border-dashed focus:border-blue-500 focus:outline-none p-1 text-slate-700 text-right"
+                                    value="${model.images}"
+                                    onchange="updateModelProp(${index}, 'images', this.value)">
+                                <span class="text-slate-400 mx-1.5 text-[10px] font-bold">x</span>
+                                <input type="number" 
+                                    class="w-16 bg-transparent border-b border-slate-200 border-dashed focus:border-blue-500 focus:outline-none p-1 text-slate-700 text-right"
+                                    value="${model.tokensPerImage}"
+                                    onchange="updateModelProp(${index}, 'tokensPerImage', this.value)" title="Tokens por Imagem">
+                                <span class="text-slate-400 ml-1 text-[10px]">tks</span>
+                            </div>
+                        </div>
+                        ` : `
+                        <div class="flex flex-col xl:flex-row xl:items-center space-y-2 xl:space-y-0 xl:space-x-4">
+                            <div class="flex items-center text-xs whitespace-nowrap">
+                                <span class="text-slate-500 mr-2 font-semibold w-6">In:</span>
+                                <input type="number" 
+                                    class="w-24 lg:w-32 bg-transparent border-b border-slate-200 border-dashed focus:border-blue-500 focus:outline-none p-1 text-slate-700 text-right"
+                                    value="${model.prompt}"
+                                    onchange="updateModelProp(${index}, 'prompt', this.value)">
+                            </div>
+                            <div class="flex items-center text-xs whitespace-nowrap">
+                                <span class="text-slate-500 mr-2 font-semibold w-8 xl:w-6">Out:</span>
+                                <input type="number" 
+                                    class="w-24 lg:w-32 bg-transparent border-b border-slate-200 border-dashed focus:border-blue-500 focus:outline-none p-1 text-slate-700 text-right"
+                                    value="${model.completion}"
+                                    onchange="updateModelProp(${index}, 'completion', this.value)">
+                            </div>
+                        </div>
+                        `}
+                    </td>
+                    <td class="px-2 py-4 text-center">
+                        <div class="flex items-center justify-center">
+                            <span class="text-slate-400 text-xs mr-1 font-semibold">x</span>
+                            <input type="number" 
+                                class="w-12 bg-transparent border-b border-slate-200 border-dashed focus:border-blue-500 focus:outline-none text-center p-1 font-bold text-blue-600"
+                                value="${model.weight}"
+                                onchange="updateModelProp(${index}, 'weight', this.value)">
+                        </div>
+                    </td>
+                    <td class="px-2 py-4">
+                        <input type="number" step="0.01"
+                            class="w-14 mx-auto block bg-transparent border-b border-slate-200 border-dashed focus:border-blue-500 focus:outline-none focus:ring-0 p-1 text-slate-700 transition-colors text-center"
+                            value="${model.dayFactor}"
+                            onchange="updateModelProp(${index}, 'dayFactor', this.value)">
+                    </td>
+                    <td class="px-2 py-4">
+                        <input type="number" step="0.1"
+                            class="w-14 mx-auto block bg-transparent border-b border-slate-200 border-dashed focus:border-blue-500 focus:outline-none focus:ring-0 p-1 text-slate-700 transition-colors text-center"
+                            value="${model.hourFactor}"
+                            onchange="updateModelProp(${index}, 'hourFactor', this.value)">
+                    </td>
+                    <td class="px-2 py-4">
+                        <input type="number" 
+                            class="w-16 mx-auto block bg-transparent border-b border-slate-200 border-dashed focus:border-blue-500 focus:outline-none focus:ring-0 p-1 text-slate-700 transition-colors text-center"
+                            value="${model.gsuLimit}"
+                            onchange="updateModelProp(${index}, 'gsuLimit', this.value)">
+                    </td>
+                    <td class="px-4 py-4 text-right whitespace-nowrap">
+                        <div class="text-slate-900 font-semibold text-base">${formatNumber(tps)} <span class="text-xs text-slate-400 font-normal">TPS</span></div>
+                        <div class="text-[10px] text-slate-400 mt-1" title="Tokens Totais (Considerando Burden)">${formatNumber(totalTokensWeighted)} tks vol</div>
+                    </td>
+                    <td class="px-4 py-4 text-center">
+                        <span class="inline-flex items-center justify-center px-4 py-1.5 rounded-full text-base font-bold shadow-sm ${requiredGsus > 0 ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}">
+                            ${requiredGsus}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Atualizar o dashboard superior
+            document.getElementById('total-gsus').innerText = totalGsus;
+            
+            // Calcular e atualizar os custos (Semanal removido)
+            document.getElementById('cost-month1').innerText = formatCurrency(totalGsus * 2700);
+            document.getElementById('cost-month3').innerText = formatCurrency(totalGsus * 2400);
+            document.getElementById('cost-month12').innerText = formatCurrency(totalGsus * 2000);
+        }
+
+        // Atualizações de inputs globais (topo)
+        document.getElementById('input-day-factor').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            if (!isNaN(val)) {
+                state.models.forEach(m => m.dayFactor = val);
+                calculate();
+                // Atualiza também os inputs visuais da tabela para refletir a mudança global
+                document.querySelectorAll('input[onchange*="dayFactor"]').forEach(input => input.value = val);
+            }
+        });
+
+        document.getElementById('input-hour-factor').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            if (!isNaN(val)) {
+                state.models.forEach(m => m.hourFactor = val);
+                calculate();
+                // Atualiza também os inputs visuais da tabela para refletir a mudança global
+                document.querySelectorAll('input[onchange*="hourFactor"]').forEach(input => input.value = val);
+            }
+        });
+
+        // Função genérica para atualizar propriedades de um modelo específico na tabela
+        window.updateModelProp = function(index, field, value) {
+            const val = parseFloat(value);
+            if (!isNaN(val) && val >= 0) {
+                state.models[index][field] = val;
+                calculate();
+            }
+        };
+
+        // Renderização inicial
+        document.addEventListener('DOMContentLoaded', calculate);
+
+    </script>
+</body>
+</html>

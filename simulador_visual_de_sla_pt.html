@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Provisioned Throughput - Animação de SLA e Transbordo</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; overflow-x: hidden; }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(71, 85, 105, 0.5);
+        }
+        
+        /* Custom range slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 2px;
+        }
+        input[type=range]:focus { outline: none; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col p-4 md:p-6">
+
+    <header class="mb-6">
+        <h1 class="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+            Dinâmica de Provisioned Throughput
+        </h1>
+        <p class="text-slate-400 mt-2 text-sm max-w-3xl">
+            Simulação em tempo real demonstrando como as Requisições (Tokens Por Segundo - TPS) interagem com o limite da sua GSU contratada. O que ultrapassa a linha é faturado como On-Demand.
+        </p>
+    </header>
+
+    <div class="flex flex-col lg:flex-row gap-6 flex-1">
+        
+        <div class="w-full lg:w-80 flex flex-col gap-4">
+            
+            <!-- Painel de Controles -->
+            <div class="glass-panel p-5 rounded-2xl">
+                <h2 class="text-lg font-semibold text-slate-200 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                    Controles
+                </h2>
+                
+                <div class="space-y-6">
+                    <div>
+                        <label class="flex justify-between text-sm text-slate-300 mb-2">
+                            <span>Capacidade Provisionada (GSUs)</span>
+                            <span id="gsu-val" class="font-bold text-blue-400">2690 TPS</span>
+                        </label>
+                        <input type="range" id="gsu-slider" min="0" max="8000" step="100" value="2690">
+                        <p class="text-[10px] text-slate-500 mt-1">Custo fixo. Garante SLA de latência.</p>
+                    </div>
+
+                    <div>
+                        <label class="flex justify-between text-sm text-slate-300 mb-2">
+                            <span>Volume de Tráfego Simulado</span>
+                            <span id="traffic-val" class="font-bold text-emerald-400">Médio</span>
+                        </label>
+                        <input type="range" id="traffic-slider" min="500" max="8000" step="100" value="2000">
+                        <p class="text-[10px] text-slate-500 mt-1">Simula o envio de tokens pelos usuários.</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-5 border-t border-slate-700/50">
+                    <label class="block text-xs uppercase tracking-wider font-semibold text-slate-400 mb-3">Cenários Rápidos</label>
+                    <div class="grid grid-cols-1 gap-2">
+                        <button onclick="setScenario('ondemand')" class="w-full text-left px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg text-xs text-slate-200 transition-colors flex justify-between items-center group">
+                            <span>100% On-Demand (Sem GSU)</span>
+                            <span class="text-red-400 group-hover:animate-pulse">🔥</span>
+                        </button>
+                        <button onclick="setScenario('100pct')" class="w-full text-left px-3 py-2 bg-blue-900/40 hover:bg-blue-800/60 border border-blue-500/50 rounded-lg text-xs text-blue-200 transition-colors flex justify-between items-center">
+                            <span>SLA cobrindo 100%</span>
+                            <span class="text-blue-400">🛡️</span>
+                        </button>
+                        <button onclick="setScenario('60pct')" class="w-full text-left px-3 py-2 bg-indigo-900/40 hover:bg-indigo-800/60 border border-indigo-500/50 rounded-lg text-xs text-indigo-200 transition-colors flex justify-between items-center">
+                            <span>Misto (SLA cobrindo ~60%)</span>
+                            <span class="text-indigo-400">⚖️</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Painel de Métricas -->
+            <div class="glass-panel p-5 rounded-2xl flex-1 flex flex-col justify-center">
+                <h2 class="text-sm uppercase tracking-wider font-semibold text-slate-400 mb-4">Status em Tempo Real</h2>
+                
+                <div class="space-y-4">
+                    <div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
+                        <div class="text-xs text-slate-400 mb-1">Tráfego Atual (TPS)</div>
+                        <div id="current-tps" class="text-2xl font-mono font-bold text-white">0</div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-blue-900/20 p-3 rounded-lg border border-blue-500/30">
+                            <div class="text-[10px] uppercase text-blue-400 mb-1 font-semibold">Coberto por SLA</div>
+                            <div id="sla-pct" class="text-xl font-mono font-bold text-blue-300">100%</div>
+                        </div>
+                        <div class="bg-red-900/20 p-3 rounded-lg border border-red-500/30">
+                            <div class="text-[10px] uppercase text-red-400 mb-1 font-semibold flex items-center" title="Transbordo para Pay-As-You-Go">
+                                <span class="animate-pulse mr-1">🔥</span> Transbordo
+                            </div>
+                            <div id="od-pct" class="text-xl font-mono font-bold text-red-300">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-slate-700/50">
+                    <div class="flex items-center text-xs text-slate-400 mb-1">
+                        <div class="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+                        Área Azul: Faturado no plano fixo (GSU).
+                    </div>
+                    <div class="flex items-center text-xs text-slate-400">
+                        <div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                        Área Vermelha: Faturado On-Demand (Gasto Extra).
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Área da Animação do Gráfico -->
+        <div class="glass-panel rounded-2xl flex-1 relative overflow-hidden flex flex-col min-h-[400px]">
+            <div class="absolute top-4 left-6 z-10">
+                <div class="text-sm font-semibold text-slate-300">Gráfico de Carga de Trabalho</div>
+                <div class="text-xs text-slate-500">TPS vs Capacidade Provisionada</div>
+            </div>
+            
+            <div class="flex-1 w-full h-full relative p-2 pt-16">
+                <canvas id="chartCanvas" class="w-full h-full block rounded-xl"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const canvas = document.getElementById('chartCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Controles UI
+        const gsuSlider = document.getElementById('gsu-slider');
+        const trafficSlider = document.getElementById('traffic-slider');
+        const gsuVal = document.getElementById('gsu-val');
+        const trafficVal = document.getElementById('traffic-val');
+        
+        // Elementos de Status
+        const currentTpsEl = document.getElementById('current-tps');
+        const slaPctEl = document.getElementById('sla-pct');
+        const odPctEl = document.getElementById('od-pct');
+
+        // Configurações e Estado
+        let gsuLimit = parseInt(gsuSlider.value);
+        let baseTraffic = parseInt(trafficSlider.value);
+        
+        // Dados do Gráfico
+        const MAX_POINTS = 150;
+        let dataPoints = new Array(MAX_POINTS).fill(0);
+        let timeOffset = 0;
+        
+        // Escala Vertical
+        const MAX_Y_SCALE = 10000;
+
+        function setScenario(type) {
+            if (type === 'ondemand') {
+                gsuSlider.value = 0; // Zera as GSUs
+                trafficSlider.value = 5000; // Tráfego alto
+            } else if (type === '100pct') {
+                gsuSlider.value = 8000; // GSU no máximo
+                trafficSlider.value = 3500; // Tráfego controlado
+            } else if (type === '60pct') {
+                gsuSlider.value = 2500; // GSU mediana
+                trafficSlider.value = 4500; // Tráfego superando a GSU
+            }
+            
+            // Força a atualização do estado visual
+            gsuLimit = parseInt(gsuSlider.value);
+            baseTraffic = parseInt(trafficSlider.value);
+            updateLabels();
+        }
+
+        // Atualizar textos dos sliders
+        function updateLabels() {
+            gsuVal.innerText = `${gsuLimit} TPS`;
+            
+            if(baseTraffic < 2000) trafficVal.innerText = "Baixo";
+            else if(baseTraffic < 5000) trafficVal.innerText = "Médio";
+            else trafficVal.innerText = "Alto (Pico)";
+        }
+
+        gsuSlider.addEventListener('input', (e) => {
+            gsuLimit = parseInt(e.target.value);
+            updateLabels();
+        });
+
+        trafficSlider.addEventListener('input', (e) => {
+            baseTraffic = parseInt(e.target.value);
+            updateLabels();
+        });
+
+        function resize() {
+            // High DPI support para telas nítidas
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            canvas.style.width = `${rect.width}px`;
+            canvas.style.height = `${rect.height}px`;
+        }
+
+        window.addEventListener('resize', resize);
+        
+        // Função para gerar uma curva de tráfego natural (Senóide + Ruído)
+        function generateTraffic(t) {
+            // Onda principal subindo e descendo
+            const wave = Math.sin(t * 0.05) * (baseTraffic * 0.4);
+            
+            // Segunda onda menor para irregularidade
+            const wave2 = Math.cos(t * 0.12) * (baseTraffic * 0.2);
+            
+            // Ruído aleatório (spikes de requisições)
+            let noise = (Math.random() - 0.2) * (baseTraffic * 0.3);
+            
+            // Esporadicamente um super pico (simulando um script pesado)
+            if (Math.random() > 0.95) {
+                noise += Math.random() * baseTraffic * 0.8;
+            }
+
+            let value = baseTraffic + wave + wave2 + noise;
+            return Math.max(0, value); // Não permite TPS negativo
+        }
+
+        function draw() {
+            const width = canvas.width / window.devicePixelRatio;
+            const height = canvas.height / window.devicePixelRatio;
+
+            // Limpar frame
+            ctx.clearRect(0, 0, width, height);
+
+            // Gerar novo ponto e empurrar o array
+            const currentTps = generateTraffic(timeOffset);
+            dataPoints.push(currentTps);
+            dataPoints.shift();
+            timeOffset++;
+
+            // Mapear valor Y para pixel
+            const getY = (val) => height - ((val / MAX_Y_SCALE) * height);
+            
+            const limitY = getY(gsuLimit);
+            const stepX = width / (MAX_POINTS - 1);
+
+            // 1. Desenhar a área Azul (SLA) - Limitada pela GSU
+            ctx.beginPath();
+            ctx.moveTo(0, height);
+            for (let i = 0; i < MAX_POINTS; i++) {
+                const val = Math.min(dataPoints[i], gsuLimit); // Clampa o valor na GSU
+                ctx.lineTo(i * stepX, getY(val));
+            }
+            ctx.lineTo(width, height);
+            ctx.closePath();
+            
+            const slaGradient = ctx.createLinearGradient(0, height, 0, limitY);
+            slaGradient.addColorStop(0, 'rgba(59, 130, 246, 0.1)'); // tailwind blue-500
+            slaGradient.addColorStop(1, 'rgba(59, 130, 246, 0.6)');
+            ctx.fillStyle = slaGradient;
+            ctx.fill();
+
+            // 2. Desenhar a área Vermelha (Transbordo / On-Demand)
+            ctx.beginPath();
+            let hasOverflow = false;
+            for (let i = 0; i < MAX_POINTS; i++) {
+                const val = dataPoints[i];
+                if (val > gsuLimit) {
+                    if (!hasOverflow) {
+                        ctx.moveTo((i-1)*stepX, limitY); // Inicia onde cruzou a linha
+                        hasOverflow = true;
+                    }
+                    ctx.lineTo(i * stepX, getY(val));
+                } else if (hasOverflow) {
+                    ctx.lineTo(i * stepX, limitY);
+                    hasOverflow = false;
+                }
+            }
+            
+            if (hasOverflow) ctx.lineTo(width, limitY);
+            
+            // Fechar o caminho do transbordo voltando pela linha do limite
+            if (dataPoints.some(v => v > gsuLimit)) {
+                ctx.lineTo(width, limitY);
+                ctx.lineTo(0, limitY);
+                ctx.closePath();
+                
+                const odGradient = ctx.createLinearGradient(0, limitY, 0, 0);
+                odGradient.addColorStop(0, 'rgba(239, 68, 68, 0.8)'); // tailwind red-500
+                odGradient.addColorStop(1, 'rgba(248, 113, 113, 0.3)');
+                ctx.fillStyle = odGradient;
+                ctx.fill();
+            }
+
+            // 3. Desenhar a linha do Tráfego Real
+            ctx.beginPath();
+            for (let i = 0; i < MAX_POINTS; i++) {
+                ctx.lineTo(i * stepX, getY(dataPoints[i]));
+            }
+            ctx.strokeStyle = '#f8fafc';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 4. Desenhar a linha de Limite GSU (Provisioned)
+            ctx.beginPath();
+            ctx.moveTo(0, limitY);
+            ctx.lineTo(width, limitY);
+            ctx.strokeStyle = '#10b981'; // emerald-500
+            ctx.lineWidth = 2;
+            ctx.setLineDash([8, 6]);
+            ctx.stroke();
+            ctx.setLineDash([]); // reset dash
+
+            // Badge flutuante sobre a linha da GSU
+            ctx.fillStyle = '#10b981';
+            ctx.fillRect(width - 160, limitY - 24, 160, 24);
+            ctx.fillStyle = '#0f172a';
+            ctx.font = 'bold 12px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText(`LIMITE GSU (${gsuLimit})`, width - 80, limitY - 8);
+
+            // 5. Atualizar Métricas na Tela
+            const currentVal = Math.round(dataPoints[MAX_POINTS - 1]);
+            currentTpsEl.innerText = currentVal;
+            
+            // Atualizar cores se houver transbordo
+            if (currentVal > gsuLimit) {
+                currentTpsEl.classList.remove('text-white');
+                currentTpsEl.classList.add('text-red-400');
+            } else {
+                currentTpsEl.classList.remove('text-red-400');
+                currentTpsEl.classList.add('text-white');
+            }
+
+            // Calcular porcentagem de SLA do frame atual (baseado na onda inteira gerada)
+            let totalTks = 0;
+            let slaTks = 0;
+            for(let i=0; i<MAX_POINTS; i++){
+                totalTks += dataPoints[i];
+                slaTks += Math.min(dataPoints[i], gsuLimit);
+            }
+            
+            const slaRatio = totalTks > 0 ? (slaTks / totalTks) * 100 : 100;
+            const odRatio = 100 - slaRatio;
+
+            slaPctEl.innerText = slaRatio.toFixed(1) + '%';
+            odPctEl.innerText = odRatio.toFixed(1) + '%';
+
+            // Loop
+            requestAnimationFrame(draw);
+        }
+
+        // Init
+        resize();
+        draw();
+        updateLabels();
+
+    </script>
+</body>
+</html>
